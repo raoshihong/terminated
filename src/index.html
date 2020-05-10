@@ -1,0 +1,57 @@
+<!doctype html>
+  <html>
+    <head>
+      <link rel="stylesheet" href="../node_modules/xterm/css/xterm.css" />
+      <script src="../node_modules/xterm/lib/xterm.js"></script>
+    </head>
+    <body>
+      <div id="terminal"></div>
+      <script>
+        var term = new Terminal({
+                cols: 200,
+            　　rows: 80,
+            　　screenKeys: true,
+            　　useStyle: true});
+        
+        var ws = new WebSocket("ws://localhost:8080/webssh");
+        //连接成功的回调
+        ws.onopen = function(event){
+            // term = new Terminal({  //new 一个terminal实例，就是数据展示的屏幕和一些见简单设置，包括屏幕的宽度，高度，光标是否闪烁等等
+            //    cols: 200,
+            // 　　rows: 80,
+            // 　　screenKeys: true,
+            // 　　useStyle: true
+            // });
+            term.open(document.getElementById('terminal'));
+            //发送用户信息,进行登录linux终端
+            ws.send(JSON.stringify({
+                operate:'connect',
+                host: '192.168.8.102',//IP
+                port: '22',//端口号
+                username: 'hadoop',//用户名
+                password: '123456'//密码
+            }));
+        }
+
+        //接收服务端返回的数据
+        ws.onmessage = function(event){
+            //将服务端返回端数据写到term中
+            term.write(event.data);
+        }
+
+        ws.onclose = function(evt) {//websocket关闭
+        　　term.write("Session terminated");
+        　　term.destroy();//屏幕关闭
+        }
+        ws.onerror = function(evt) {//失败额处理
+        　　if (typeof console.log == "function") {
+            　　　　console.log(evt)
+        　　}
+        }
+
+        term.onKey(e=>{
+            ws.send(JSON.stringify({"operate": "command", "command": e.key}));//websocket发送给后台
+        })
+      </script>
+    </body>
+  </html>
